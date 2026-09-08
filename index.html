@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>消防指挥中心模拟器</title>
+<style>
+/* 极简加载态：分流只需几十毫秒，通常来不及看清就跳走了 */
+html,body{margin:0;height:100%;background:#140404;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;align-items:center;justify-content:center;color:#c8a2a2;font-size:13px}
+.box{text-align:center;line-height:2;padding:20px}
+.spin{width:26px;height:26px;margin:0 auto 12px;border:3px solid rgba(255,255,255,.12);
+  border-top-color:#ef4444;border-radius:50%;animation:r .8s linear infinite}
+@keyframes r{to{transform:rotate(360deg)}}
+a{color:#ff9c9c}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="spin"></div>
+  <div>正在进入…</div>
+  <div id="fallback" style="display:none">
+    若长时间未跳转，请<a href="./maint.html">点此手动进入</a>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   ★★★ 只需要改下面 3 行 ★★★
+   ========================================================= */
+
+/* 1. 新版本上线时间（24小时制，用户本地时区）
+      格式："YYYY-MM-DD HH:mm" */
+var RELEASE_TIME = "2026-09-07 22:00";
+
+/* 2. 未上线时显示的页面（维护页） */
+var MAINT_URL = "./maint.html";
+
+/* 3. 上线后显示的页面（新游戏） */
+var GAME_URL  = "./game.html";
+
+/* =========================================================
+   以下为分流逻辑，无需修改
+   ========================================================= */
+(function(){
+  var target = null;
+  if(RELEASE_TIME){
+    var m = String(RELEASE_TIME).replace("T"," ").trim()
+            .match(/^(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})/);
+    if(m) target = new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], 0, 0).getTime();
+  }
+
+  /* 时间解析失败时保守起见进维护页，避免提前泄露未完成的版本 */
+  var dest = (target !== null && Date.now() >= target) ? GAME_URL : MAINT_URL;
+
+  /* 加时间戳参数，绕开 CDN / 浏览器缓存 */
+  var url = dest + (dest.indexOf("?") >= 0 ? "&" : "?") + "_t=" + Date.now();
+
+  /* 3 秒后还没跳走才显示手动链接（网络异常时兜底） */
+  setTimeout(function(){
+    var f = document.getElementById("fallback");
+    if(f){
+      f.style.display = "block";
+      f.querySelector("a").href = url;
+    }
+  }, 3000);
+
+  try{ location.replace(url); }
+  catch(e){ try{ location.href = url; }catch(e2){} }
+})();
+</script>
+</body>
+</html>
