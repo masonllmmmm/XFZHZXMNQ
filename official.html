@@ -248,31 +248,6 @@ h1 .ver{
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
-
-/* ===== 内测码入口（低调样式） ===== */
-.beta-zone{margin-top:14px;text-align:center}
-.beta-toggle{background:none;border:none;color:#94a3b8;font-size:11px;cursor:pointer;padding:6px 10px;
-  text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;
-  -webkit-tap-highlight-color:transparent;font-family:inherit}
-.beta-toggle:hover{color:#64748b}
-.beta-box{display:none;margin-top:8px;padding:11px 12px;background:#f8fafc;
-  border:1px dashed #cbd5e1;border-radius:11px}
-.beta-box.open{display:block;animation:betaIn .22s ease}
-@keyframes betaIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
-.beta-row{display:flex;gap:6px}
-.beta-input{flex:1;min-width:0;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;
-  font-size:13px;font-family:inherit;outline:none;background:#fff;color:#1f2937;text-align:center;
-  letter-spacing:1px}
-.beta-input:focus{border-color:#9f1313;box-shadow:0 0 0 2px rgba(159,19,19,.08)}
-.beta-go{flex:none;padding:8px 13px;border:none;border-radius:8px;background:#9f1313;color:#fff;
-  font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
-.beta-go:active{transform:scale(.95)}
-.beta-msg{margin-top:7px;font-size:11px;min-height:15px;line-height:1.5;text-align:center}
-.beta-msg.err{color:#dc2626}
-.beta-msg.ok{color:#16a34a;font-weight:700}
-.beta-box.shake{animation:betaShake .34s}
-@keyframes betaShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}
-  40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 </style>
 </head>
 <body>
@@ -335,19 +310,6 @@ h1 .ver{
     <div style="text-align:center">
       <button class="refresh" id="btnRefresh">🔄 刷新页面</button>
     </div>
-
-    <!-- ===== 内测码入口 ===== -->
-    <div class="beta-zone">
-      <button class="beta-toggle" id="betaToggle" type="button">🔒 内测人员入口</button>
-      <div class="beta-box" id="betaBox">
-        <div class="beta-row">
-          <input class="beta-input" id="betaInput" type="text" placeholder="请输入内测码"
-                 autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="24">
-          <button class="beta-go" id="betaGo" type="button">进入</button>
-        </div>
-        <div class="beta-msg" id="betaMsg"></div>
-      </div>
-    </div>
   </div>
 
 </div>
@@ -362,11 +324,6 @@ h1 .ver{
 /* 0. 原始路径：必须在改地址栏之前记录，用于判断本页是"入口"还是"分流器跳入的子页" */
 var ORIG_PATH = "";
 try{ ORIG_PATH = location.pathname || ""; }catch(e){}
-
-/* V4.2.4：必须在地址栏归一（normalizeUrl）之前保存原始 URL 参数，
-   否则 ?beta=xxx 会被 replaceState 抹掉，带码链接直达将失效 */
-var ORIG_SEARCH = "";
-try{ ORIG_SEARCH = location.search || ""; }catch(e){}
 
 /* V4.2.4 修复：地址栏归一
    分流器用 replace 跳到本页后，地址栏会变成 .../maint.html。
@@ -384,11 +341,17 @@ try{ ORIG_SEARCH = location.search || ""; }catch(e){}
 })();
 
 /* 1. 版本号：显示在标题右侧 */
-var VERSION = "V4.2.4 内测";
+var VERSION = "V4.2.4";
 
 /* 2. 预计上线时间：留空字符串 "" 则不显示倒计时，改为显示"即将完成"
       格式："YYYY-MM-DD HH:mm"（24小时制），时间为用户本地时区 */
 var RELEASE_TIME = "2026-09-13 12:20";
+
+/* 2.1 到点后自动前往的地址（可选）
+      留空 ""  = 保持原行为（子页跳回分流器 / 入口只提示刷新）
+      填地址  = 到点后自动跳过去，如 "./game.html"
+      用途：把本页当作"内测结束后的正式维护页"时，填正式版游戏地址 */
+var FINAL_URL = "./index.html";
 
 /* 3. 管理员联系方式 */
 var CONTACT = "1355296858@qq.com";
@@ -399,22 +362,7 @@ var TARGET_PCT = 92;
 /* 5. 进度条爬升速度：每隔多少毫秒 +1% */
 var TICK_MS = 260;
 
-/* 6. 内测版配置【重要：上线前请修改】
-   BETA_URL    ：内测版游戏文件名。建议用无意义的随机名（如 x7k2p9.html），
-                 尽量别用 beta.html / game-beta.html 这种一眼能猜到的名字。
-   BETA_HASHES ：内测码的哈希值数组，可配多个（一人一码 / 分批放码）。
-                 源码里只存哈希、不存明文，别人翻源代码也看不到内测码本身。
-                 改内测码请到页尾「生成哈希」工具处生成，或让开发者帮你算。 */
-var BETA_URL = "beta.html";
-var BETA_HASHES = ["w0j0b8"];
-
-/* 6.1 内测码尝试次数限制（防暴力穷举，0 表示不限） */
-var BETA_MAX_TRY = 8;
-
-/* 6.2 验证成功后是否记住（记住后下次打开维护页自动进内测版） */
-var BETA_REMEMBER = true;
-
-/* 6.3 更新内容预告：{类型, 内容}，类型可选 new / opt / fix */
+/* 6. 更新内容预告：{类型, 内容}，类型可选 new / opt / fix */
 var CHANGELOG = [
   {t:"new",  x:"新手教程语音播报：每步自动朗读精炼要点，可一键开关"},
   {t:"new",  x:"底部导航重做：线性图标、选中指示条、警情徽标提醒"},
@@ -424,109 +372,6 @@ var CHANGELOG = [
   {t:"fix",  x:"教程讲解时警情抢麦导致语音被腰斩的问题"}
 ];
 var TAG_TEXT = {new:"新增", opt:"优化", fix:"修复"};
-
-/* =========================================================
-   内测码验证（V4.2.4）
-   ========================================================= */
-/* djb2 变体哈希：与页尾生成工具保持一致 */
-function betaHash(str){
-  var h = 5381, s = String(str || "");
-  for(var i=0;i<s.length;i++){ h = (((h<<5)+h) + s.charCodeAt(i)) >>> 0; }
-  var out = "", digs = "0123456789abcdefghijklmnopqrstuvwxyz";
-  if(h === 0) return "0";
-  while(h > 0){ out = digs[h % 36] + out; h = Math.floor(h / 36); }
-  return out;
-}
-var BETA_KEY = "fcc_beta_ok_v424";
-var BETA_TRY_KEY = "fcc_beta_try_v424";
-function betaTries(){
-  try{ return parseInt(localStorage.getItem(BETA_TRY_KEY) || "0") || 0; }catch(e){ return 0; }
-}
-function betaAddTry(){
-  try{ localStorage.setItem(BETA_TRY_KEY, String(betaTries() + 1)); }catch(e){}
-}
-function betaPassed(){
-  try{ return localStorage.getItem(BETA_KEY) === "1"; }catch(e){ return false; }
-}
-function betaMark(){
-  try{ if(BETA_REMEMBER) localStorage.setItem(BETA_KEY, "1"); }catch(e){}
-}
-function betaCheck(code){
-  if(!BETA_HASHES || !BETA_HASHES.length) return false;
-  var h = betaHash(String(code || "").trim());
-  for(var i=0;i<BETA_HASHES.length;i++){
-    if(BETA_HASHES[i] === h) return true;
-  }
-  return false;
-}
-function betaGoto(){
-  var url = BETA_URL + (BETA_URL.indexOf("?") >= 0 ? "&" : "?") + "_t=" + Date.now();
-  try{ location.replace(url); }
-  catch(e){ try{ location.href = url; }catch(e2){} }
-}
-/* 支持带码链接直达：.../maint.html?beta=内测码 ，方便直接发给内测人员 */
-(function betaFromUrl(){
-  try{
-    var qs = (typeof ORIG_SEARCH !== "undefined" && ORIG_SEARCH) ? ORIG_SEARCH : (location.search || "");
-    var m = qs.match(/[?&]beta=([^&]*)/);
-    if(m && m[1]){
-      var code = decodeURIComponent(m[1]);
-      if(betaCheck(code)){ betaMark(); betaGoto(); return; }
-    }
-  }catch(e){}
-  /* 已验证过且开启记住：自动进内测版 */
-  if(betaPassed() && BETA_REMEMBER) betaGoto();
-})();
-function betaInitUI(){
-  var tg = document.getElementById("betaToggle"),
-      box = document.getElementById("betaBox"),
-      inp = document.getElementById("betaInput"),
-      go = document.getElementById("betaGo"),
-      msg = document.getElementById("betaMsg");
-  if(!tg || !box || !inp || !go || !msg) return;
-
-  tg.onclick = function(){ box.classList.toggle("open"); if(box.classList.contains("open")) inp.focus(); };
-
-  function say(t, cls){
-    msg.textContent = t;
-    msg.className = "beta-msg" + (cls ? " " + cls : "");
-  }
-  function fail(t){
-    say(t, "err");
-    box.classList.remove("shake");
-    void box.offsetWidth;      /* 重排以重播动画 */
-    box.classList.add("shake");
-    inp.select();
-  }
-  function submit(){
-    if(betaTries() >= BETA_MAX_TRY && BETA_MAX_TRY > 0){
-      fail("尝试次数过多，请稍后再试或联系管理员");
-      return;
-    }
-    var v = inp.value.trim();
-    if(!v){ fail("请输入内测码"); return; }
-    if(betaCheck(v)){
-      betaMark();
-      say("✅ 验证通过，正在进入内测版…", "ok");
-      go.disabled = true; inp.disabled = true;
-      setTimeout(betaGoto, 600);
-    }else{
-      betaAddTry();
-      var left = BETA_MAX_TRY > 0 ? (BETA_MAX_TRY - betaTries()) : 0;
-      fail("内测码不正确" + (BETA_MAX_TRY > 0 ? "，还可尝试 " + left + " 次" : ""));
-    }
-  }
-  go.onclick = submit;
-  inp.onkeydown = function(e){ if(e.key === "Enter"){ e.preventDefault(); submit(); } };
-}
-if(document.readyState === "loading"){
-  document.addEventListener("DOMContentLoaded", betaInitUI);
-}else{
-  betaInitUI();
-}
-/* 调试用：在浏览器控制台执行 betaHash("你的码") 可得到哈希值，
-   把结果填进上面的 BETA_HASHES 即可。源码里不存明文内测码。 */
-window.betaHash = betaHash;
 
 /* =========================================================
    以下为渲染逻辑，一般无需修改
@@ -601,6 +446,22 @@ window.betaHash = betaHash;
         /* 停掉进度条定时器，防止它把 100% 覆盖回去 */
         stopProgress();
         renderPct(100);
+
+        /* V4.2.5：配了 FINAL_URL 则到点直接前往（优先级最高）
+           用于"内测结束后的正式维护页"，到点自动进正式版游戏 */
+        if(typeof FINAL_URL !== "undefined" && FINAL_URL){
+          label.textContent = "🎉 新版本已发布，正在载入…";
+          var fu = FINAL_URL + (FINAL_URL.indexOf("?") >= 0 ? "&" : "?") + "_t=" + Date.now();
+          setTimeout(function(){
+            try{ location.replace(fu); }
+            catch(e){ try{ location.href = fu; }catch(e2){} }
+          }, 1000);
+          /* 兜底：万一跳转被拦，4 秒后再试一次 */
+          setTimeout(function(){
+            try{ location.replace(fu + "&_r=1"); }catch(e){}
+          }, 4000);
+          return;
+        }
 
         /* V4.2.4 修复：分流器场景（本页是 maint.html 子页）到点后
            主动跳回分流器，由它切到新版本，无需用户手动刷新 */
